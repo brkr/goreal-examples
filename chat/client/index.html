@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>goreal chat example</title>
+
+    <link href="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-ggOyR0iXCbMQv3Xipma34MD+dH/1fQ784/j6cY/iJTQUOhcWr7x9JvoRxT2MZw1T" crossorigin="anonymous">
+</head>
+<body>
+
+
+
+
+<div id="app" class="container">
+    <h1> Goreal chat {{message}}</h1>
+    <button class="btn btn-success" @click="connect">Connect</button>
+    <input type="text" v-model="name">
+    <div class="row">
+
+        <div class="col-md-3">
+            <ul>
+                <li v-for="item in users">{{ item.name }}</li>
+            </ul>
+        </div>
+        <div class="col-md-9">
+
+        </div>
+
+    </div>
+</div>
+
+
+<script src="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/js/bootstrap.min.js" integrity="sha384-JjSmVgyd0p3pXB1rRibZUAYoIIy6OrQ6VrjIEaFf/nJGzIxFDsf4x0xIM+B07jRM" crossorigin="anonymous"></script>
+<script src="https://cdn.jsdelivr.net/npm/vue"></script>
+<script type="text/javascript">
+
+
+    var app = new Vue({
+        el: '#app',
+        data: {
+            message: 'Hello Vue!',
+            name: "username",
+            users: [
+                { name: "berker test"}
+            ],
+        },
+        methods: {
+
+            connect: function () {
+                let self = this;
+                var socket = new WebSocket(`ws://localhost:2020/ws?name=${this.name}`);
+                console.log(socket);
+
+                socket.onopen = function (event) {
+                    socket.send("Here's some text that the server is urgently awaiting!");
+                };
+
+                socket.onmessage = function (event) {
+                    console.log(event.data);
+                    var data = JSON.parse(event.data);
+                    console.log(data);
+                    if (data.users){
+                        console.log("users loading...")
+                        self.users = data.users;
+                    }
+                }
+
+            }
+
+        }
+    })
+
+</script>
+
+</body>
+</html>
