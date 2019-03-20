@@ -1,10 +1,11 @@
 package main
 
 import (
-	"github.com/brkr/goreal"
+	"encoding/json"
 	"log"
 	"net/http"
-	"time"
+
+	"github.com/brkr/goreal"
 )
 
 func main() {
@@ -15,7 +16,8 @@ func main() {
 		log.Println("new user handler")
 		keys, ok := r.URL.Query()["name"]
 		if ok {
-			log.Println( keys)
+			log.Println(keys)
+			client.Put("name", keys)
 			gameServer.JoinRoom("lobby", client)
 		}
 
@@ -26,38 +28,56 @@ func main() {
 
 }
 
-
-
 type Lobby struct {
 	goreal.Room
+	Users map[*goreal.Client]User
+}
 
+type User struct {
+	Status string
+	Name   string
+	Client *goreal.Client
+}
+
+type OnlineResponse struct {
+	Users []User
 }
 
 func (l *Lobby) OnJoinRequest(client *goreal.Client) bool {
 	log.Println("lobby onJoinRequest")
-
-	if len(l.Clients) >= 2 {
-		log.Println("room is full")
-		return false
-	}
-
 	return true
 }
 
 func (l *Lobby) OnInit() {
-
+	l.Config.SimulationTick = 1
 
 }
 
 func (l *Lobby) OnMessage(client *goreal.Client, message []byte) {
 	log.Printf("Lobby: Message : %s", string(message))
-	time.Sleep(4 * time.Second)
-	client.SendMessageStr("{\"users\": [{\"name\": \"cl1\",\"id\": 1},{\"name\": \"cl1\",\"id\": 2}]}")
+	// time.Sleep(4 * time.Second)
+	// client.SendMessageStr("{\"users\": [{\"name\": \"cl1\",\"id\": 1},{\"name\": \"cl1\",\"id\": 2}]}")
+
 }
 
 func (l *Lobby) OnClientJoin(client *goreal.Client) {
 	log.Println("lobby onClientJoin")
 
+	username := client.Get("name")
+	log.Printf("asdasd %s", username)
+
+	name, err := username.(string)
+	if err {
+
+	}
+
+	log.Printf(name)
+
+	user := &User{Name: name, Status: "online", Client: client}
+	log.Printf("client %s connected.", name)
+	l.Users[client] = *user
+
+	log.Println(l.Users[client])
 
 }
 
@@ -67,9 +87,23 @@ func (l *Lobby) OnLeave(client *goreal.Client) {
 
 func (l *Lobby) OnUpdate(delta float64) {
 	//log.Println("update game simulation delta time:  ", delta)
+	log.Printf("sending status. User count %d", len(l.Users))
+
+	response := &OnlineResponse{Users: make([]User, len(l.Users))}
+
+	i := 0
+	for _, v := range l.Users {
+		response.Users[i] = v
+	}
+
+	jsonString, err := json.Marshal(response)
+	if err != nil {
+		log.Println(err)
+	}
+
+	l.BroadcastMessageByte(jsonString)
 }
 
 func NewLobby() *Lobby {
-	return &Lobby{}
+	return &Lobby{Users: make(map[*goreal.Client]User)}
 }
-
