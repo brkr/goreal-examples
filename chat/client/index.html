@@ -11,18 +11,23 @@
 
 
 <div id="app" class="container">
-    <h1> Goreal chat {{message}}</h1>
+    <h1> Goreal chat</h1>
     <button class="btn btn-success" @click="connect">Connect</button>
     <input type="text" v-model="name">
     <div class="row">
 
-        <div class="col-md-3">
+        <div class="col-md-3 col-sm-4">
             <ul>
-                <li v-for="item in users">{{ item.name }}</li>
+                <li v-for="item in users">{{ item.name }} <span>({{ item.status }})</span></li>
             </ul>
         </div>
-        <div class="col-md-9">
+        <div class="col-md-9 col-sm-8">
+            <ul>
+                <li  v-for="item in groupMessages"> {{ item.name }} - <span>{{ item.message }}</span> </li>
+            </ul>
 
+            <input type="text" v-model="message">
+            <button class="btn btn-success" @click="sendGroup">Send</button>
         </div>
 
     </div>
@@ -33,7 +38,8 @@
 <script src="https://cdn.jsdelivr.net/npm/vue"></script>
 <script type="text/javascript">
 
-
+    
+    var socket;
     var app = new Vue({
         el: '#app',
         data: {
@@ -42,12 +48,22 @@
             users: [
                 { name: "berker test"}
             ],
+            groupMessages: [
+                {name: "berker", message: "deneme 1"},
+                {name: "test 1", message: "asdasdasd"},
+            ],
+            message: null
         },
         methods: {
-
+            sendGroup: function () {
+                var messageData = { name: this.name, message: this.message};
+                socket.send(JSON.stringify(messageData));
+                console.log("message sendd");
+                this.message = null;
+            },
             connect: function () {
                 let self = this;
-                var socket = new WebSocket(`ws://localhost:2020/ws?name=${this.name}`);
+                socket = new WebSocket(`ws://localhost:2020/ws?name=${this.name}`);
                 console.log(socket);
 
                 socket.onopen = function (event) {
@@ -61,6 +77,8 @@
                     if (data.users){
                         console.log("users loading...")
                         self.users = data.users;
+                    } else if(data.name){
+                        self.groupMessages.push(data);
                     }
                 }
 

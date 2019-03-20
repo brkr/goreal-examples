@@ -9,6 +9,7 @@ import (
 )
 
 func main() {
+
 	gameServer := goreal.NewGameServer(2020)
 	log.Println(gameServer.Port)
 	lobby := NewLobby()
@@ -16,8 +17,8 @@ func main() {
 		log.Println("new user handler")
 		keys, ok := r.URL.Query()["name"]
 		if ok {
-			log.Println(keys)
-			client.Put("name", keys)
+			log.Println(keys[0])
+			client.Put("name", keys[0])
 			gameServer.JoinRoom("lobby", client)
 		}
 
@@ -34,13 +35,13 @@ type Lobby struct {
 }
 
 type User struct {
-	Status string
-	Name   string
+	Status string `json:"status"`
+	Name   string `json:"name"`
 	Client *goreal.Client
 }
 
 type OnlineResponse struct {
-	Users []User
+	Users []User `json:"users"`
 }
 
 func (l *Lobby) OnJoinRequest(client *goreal.Client) bool {
@@ -49,51 +50,64 @@ func (l *Lobby) OnJoinRequest(client *goreal.Client) bool {
 }
 
 func (l *Lobby) OnInit() {
+	// saniyede bir kez
 	l.Config.SimulationTick = 1
-
 }
 
 func (l *Lobby) OnMessage(client *goreal.Client, message []byte) {
 	log.Printf("Lobby: Message : %s", string(message))
+
+	messageObj := make(map[string]interface{})
+	json.Unmarshal(message, &messageObj)
+	log.Println(messageObj)
+
 	// time.Sleep(4 * time.Second)
 	// client.SendMessageStr("{\"users\": [{\"name\": \"cl1\",\"id\": 1},{\"name\": \"cl1\",\"id\": 2}]}")
 
+	jsonString, err := json.Marshal(messageObj)
+
+	if err != nil {
+		log.Println(err)
+		return
+	}
+
+	l.BroadcastMessageByte(jsonString)
 }
 
 func (l *Lobby) OnClientJoin(client *goreal.Client) {
 	log.Println("lobby onClientJoin")
 
 	username := client.Get("name")
-	log.Printf("asdasd %s", username)
+	log.Printf("Join %s", username)
 
-	name, err := username.(string)
-	if err {
+	user := &User{Name: "", Status: "online", Client: client}
 
+	if name, ok := username.(string); ok {
+		log.Println("casting")
+		user.Name = name
 	}
 
-	log.Printf(name)
-
-	user := &User{Name: name, Status: "online", Client: client}
-	log.Printf("client %s connected.", name)
 	l.Users[client] = *user
 
 	log.Println(l.Users[client])
-
 }
 
 func (l *Lobby) OnLeave(client *goreal.Client) {
-	client.SendMessageStr("You're kicked from room.")
+	user := l.Users[client]
+	log.Printf("%s kullanici odadan ayrildi", user.Name)
+	delete(l.Users, client)
 }
 
 func (l *Lobby) OnUpdate(delta float64) {
 	//log.Println("update game simulation delta time:  ", delta)
-	log.Printf("sending status. User count %d", len(l.Users))
+	// log.Printf("sending status. User count %d", len(l.Users))
 
 	response := &OnlineResponse{Users: make([]User, len(l.Users))}
 
 	i := 0
 	for _, v := range l.Users {
 		response.Users[i] = v
+		i++
 	}
 
 	jsonString, err := json.Marshal(response)
