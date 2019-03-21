@@ -11,14 +11,19 @@
 
 
 <div id="app" class="container">
-    <h1> Goreal chat</h1>
-    <button class="btn btn-success" @click="connect">Connect</button>
-    <input type="text" v-model="name">
+    <div class="row mb-5">
+        <h1 class="lead">Goreal chat</h1>
+        <button class="btn btn-success" @click="connect">Connect</button>
+        <input type="text" v-model="name">
+    </div>
+
     <div class="row">
 
+
+
         <div class="col-md-3 col-sm-4">
-            <ul>
-                <li v-for="item in users">{{ item.name }} <span>({{ item.status }})</span></li>
+            <ul class="list-group">
+                <li v-for="item in users" class="list-group-item">{{ item.name }} <span>({{ item.status }})</span></li>
             </ul>
         </div>
         <div class="col-md-9 col-sm-8">
@@ -29,7 +34,6 @@
             <input type="text" v-model="message">
             <button class="btn btn-success" @click="sendGroup">Send</button>
         </div>
-
     </div>
 </div>
 
@@ -56,7 +60,7 @@
         },
         methods: {
             sendGroup: function () {
-                var messageData = { name: this.name, message: this.message};
+                var messageData = { name: this.name, message: this.message, to: };
                 socket.send(JSON.stringify(messageData));
                 console.log("message sendd");
                 this.message = null;
